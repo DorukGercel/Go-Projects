@@ -7,22 +7,36 @@ import (
 )
 
 type Data interface {
-	MapToData(string) (Data, error)
+	MapToData(string) ([]Data, error)
 	GetUrl() string
-	PrintInfo()
+	Print()
 }
 
-func SendGetRequest(d Data) (Data, error) {
+func SendGetRequest(d Data, c chan []Data) {
 	resp, errReq := http.Get(d.GetUrl())
 	if errReq != nil && resp.StatusCode == http.StatusOK {
 		fmt.Println(errReq)
-		return nil, errReq
+		c <- make([]Data, 0)
+		return
 	}
 	bodyBytes, errIo := ioutil.ReadAll(resp.Body)
 	if errIo != nil {
 		fmt.Println(errIo)
-		return nil, errIo
+		c <- make([]Data, 0)
+		return
 	}
 
-	return d.MapToData(string(bodyBytes))
+	val, errMap := d.MapToData(string(bodyBytes))
+	if errMap != nil {
+		fmt.Println(errMap)
+		c <- make([]Data, 0)
+		return
+	}
+	c <- val
+}
+
+func PrintInfo(d []Data) {
+	for _, v := range d {
+		v.Print()
+	}
 }
